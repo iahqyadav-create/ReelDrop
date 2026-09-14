@@ -690,18 +690,7 @@ const resultURL =
     document.getElementById("resultURL");
 
 
-/*
-    IMPORTANT:
-
-    Jab backend online deploy karoge,
-    neeche localhost URL ko apne
-    backend URL se replace karna hoga.
-
-    Example:
-    const API_URL = "https://your-backend-url.com";
-*/
-
-const API_URL = "http://localhost:3000";
+const API_URL = "https://reeldrop-h9qz.onrender.com";
 
 
 button.addEventListener(
@@ -785,7 +774,7 @@ async function processReel(){
 
         const response =
             await fetch(
-                API_URL + "/api/process",
+                API_URL + "/process",
                 {
                     method:"POST",
 
@@ -858,4 +847,4 @@ function showMessage(text,color){
 </script>
 
 </body>
-  </html>
+    </html>
