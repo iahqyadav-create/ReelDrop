@@ -1,4 +1,4 @@
-const express = require('express');
+      const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
@@ -37,16 +37,23 @@ app.get('/', (req, res) => {
   res.send('ReelDrop backend is running');
 });
 
-// Video upload + caption generate
 app.post('/upload', upload.single('video'), async (req, res) => {
+
+  console.log('--- Naya upload request aaya ---');
+
   if (!req.file) {
+    console.log('Error: Koi file nahi mili');
     return res.status(400).json({ error: 'No video file received' });
   }
+
+  console.log('File mil gayi:', req.file.filename);
+  console.log('API key set hai kya:', ASSEMBLYAI_API_KEY ? 'Haan' : 'NAHI - MISSING!');
 
   const filePath = req.file.path;
 
   try {
-    // Step 1: Video file ko AssemblyAI ko upload karo
+    console.log('AssemblyAI ko file bhej rahe hain...');
+
     const fileStream = fs.createReadStream(filePath);
 
     const uploadResponse = await axios.post(
@@ -60,9 +67,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
       }
     );
 
+    console.log('File AssemblyAI par upload ho gayi');
+
     const audioUrl = uploadResponse.data.upload_url;
 
-    // Step 2: Transcription request bhejo
     const transcriptResponse = await axios.post(
       'https://api.assemblyai.com/v2/transcript',
       {
@@ -76,9 +84,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
       }
     );
 
+    console.log('Transcription request bhej di, ID:', transcriptResponse.data.id);
+
     const transcriptId = transcriptResponse.data.id;
 
-    // Step 3: Poll karke result ka wait karo
     let transcriptResult;
     while (true) {
       const pollingResponse = await axios.get(
@@ -89,6 +98,7 @@ app.post('/upload', upload.single('video'), async (req, res) => {
       );
 
       transcriptResult = pollingResponse.data;
+      console.log('Status check:', transcriptResult.status);
 
       if (transcriptResult.status === 'completed') {
         break;
@@ -96,12 +106,12 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         throw new Error(transcriptResult.error);
       }
 
-      // 3 second wait karke dobara check karo
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    // Uploaded file delete kar do (server space bachane ke liye)
     fs.unlinkSync(filePath);
+
+    console.log('SUCCESS! Text mila:', transcriptResult.text);
 
     res.json({
       message: 'Caption generated successfully',
@@ -110,7 +120,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error.message);
+    console.log('ERROR AAYA:', error.message);
+    if (error.response) {
+      console.log('Error details:', JSON.stringify(error.response.data));
+    }
     res.status(500).json({ error: 'Caption generation failed', details: error.message });
   }
 });
